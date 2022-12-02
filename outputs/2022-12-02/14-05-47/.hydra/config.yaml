@@ -1,0 +1,4 @@
+env_name: BipedalWalker-v3
+env_parameters:
+  hardcore: true
+use_wandb: false
