@@ -1,0 +1,6 @@
+wandb/
+outputs/
+results/
+__pycache__/
+*.log
+.DS_Store
