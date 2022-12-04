@@ -7,17 +7,8 @@ from torch.distributions import Normal
 import numpy as np
 from common import helper as h
 
-
 # Use CUDA for storing tensors / calculations if it's available
-
-if torch.cuda.is_available():
-    device = torch.device('cuda')
-# elif torch.backends.mps.is_available():
-#     device = torch.device('mps')
-else:
-    device = torch.device('cpu')
-
-print("If PG: Using device:", device)
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # Initialisation function for neural network layers
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):

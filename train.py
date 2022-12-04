@@ -21,6 +21,7 @@ else:
 
 from agents.pg import PG
 from agents.ddpg import DDPG
+from agents.pg_ac import A2C
 from common import helper as h
 from common import logger as logger
 
@@ -41,7 +42,9 @@ def train(agent, env):
         action, log_prob = agent.get_action(obs)
         obs_old = obs.copy()
         obs, reward, done, _ = env.step(to_numpy(action))
-        if log_prob:
+        if type(log_prob) == tuple:
+            agent.record(obs_old, log_prob[0], log_prob[1], reward, done, obs)
+        elif log_prob:
             agent.record(log_prob, reward)
         else:
             agent.record(obs_old, action, obs, reward, done)
@@ -137,7 +140,10 @@ def main(cfg):
             agent = PG(state_dim[0], action_dim, lr, cfg.gamma)
         elif agent_type == 'DDPG':
             actor_lr, critic_lr, tau, batch_size = x
-            agent = DDPG(state_dim, action_dim, max_action, actor_lr, critic_lr, cfg.gamma, tau, batch_size, normalize=cfg.normalize, buffer_size=cfg.buffer_size)
+            agent = DDPG(state_dim, action_dim, max_action, actor_lr, critic_lr, cfg.gamma, tau, batch_size, normalize=cfg.normalize_ddpg, buffer_size=cfg.buffer_size)
+        elif agent_type == 'A2C':
+            lr = x[0]
+            agent = A2C(state_dim[0], action_dim, lr, cfg.gamma, cfg.ent_coeff, cfg.normalize_a2c)
         else:
             raise ValueError('Unknown agent type')
 
@@ -147,6 +153,9 @@ def main(cfg):
                 model_path = work_dir/'model'/f'{cfg.exp_name}-{cfg.env_name}-{str(cfg.seed)}-{str(cfg.run_id)}-pg.pt'
             elif agent_type == 'DDPG':
                 model_path = work_dir/'model'/f'{cfg.exp_name}-{cfg.env_name}-{str(cfg.seed)}-{str(cfg.run_id)}-ddpg'
+                h.make_dir(model_path)
+            elif agent_type == 'A2C':
+                model_path = work_dir/'model'/f'{cfg.exp_name}-{cfg.env_name}-{str(cfg.seed)}-{str(cfg.run_id)}-a2c'
                 h.make_dir(model_path)
         else:
             model_path = cfg.model_path
@@ -184,29 +193,33 @@ def main(cfg):
         return -np.median(rewards[-100:])
 
     hyperparameter_search = True
-    agent_type = 'PG'
+    agent_type = 'A2C'
 
     if hyperparameter_search:
         from skopt import gp_minimize
         from skopt.space import Real, Integer
 
         if agent_type == 'PG':
-            space = [Real(1e-5, 1e-3, name='lr', prior='log-uniform')]
+            space = [Real(1e-5, 1e-2, name='lr', prior='log-uniform')]
+        elif agent_type == 'A2C':
+            space = [Real(1e-5, 1e-2, name='lr', prior='log-uniform')]
         elif agent_type == 'DDPG':
-            space = [Real(1e-5, 1e-3, name='actor_lr', prior='log-uniform'),
-                    Real(1e-5, 1e-3, name='critic_lr', prior='log-uniform'),
-                    Real(1e-5, 1e-3, name='tau', prior='log-uniform'),
-                    Integer(32, 1024, name='batch_size'),]
+            space = [Real(1e-5, 1e-2, name='actor_lr', prior='log-uniform'),
+                    Real(1e-5, 1e-2, name='critic_lr', prior='log-uniform'),
+                    Real(1e-5, 1e-2, name='tau', prior='log-uniform'),
+                    Integer(32, 1024, name='batch_size', prior='log-uniform'),]
 
-        res = gp_minimize(do_round, space, n_calls=30, n_random_starts=3, verbose=True)
+        res = gp_minimize(do_round, space, n_calls=50, n_random_starts=5, verbose=True)
         print("*"*80)
         print("Best parameters:", res.x)
         print("Best reward:", -res.fun)
     else:
         if agent_type == 'PG':
-            do_round([cfg.lr])
+            do_round([cfg.lr_pg])
         elif agent_type == 'DDPG':
             do_round([cfg.actor_lr, cfg.critic_lr, cfg.tau, cfg.batch_size])
+        elif agent_type == 'A2C':
+            do_round([cfg.lr_a2c])
 # Entry point of the script
 if __name__ == "__main__":
     main()

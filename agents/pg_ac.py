@@ -7,16 +7,14 @@ from torch.distributions import Normal
 import numpy as np
 from common.helper import StandardScaler
 
-
+# Use CUDA for storing tensors / calculations if it's available
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
 
 # Actor-critic agent
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     torch.nn.init.orthogonal_(layer.weight, std)
     torch.nn.init.constant_(layer.bias, bias_const)
     return layer
-
 
 class Policy(nn.Module):
     def __init__(self, state_dim, action_dim):
@@ -59,7 +57,7 @@ class Value(nn.Module):
         return self.value(x).squeeze(1)  # output shape [batch,]
 
 
-class PG(object):
+class A2C(object):
     def __init__(self, state_dim, action_dim, lr, gamma, ent_coeff, normalize=False):
         self.policy = Policy(state_dim, action_dim).to(device)
         self.value = Value(state_dim).to(device)

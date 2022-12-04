@@ -8,13 +8,22 @@ run_id: ??? # decided during execution
 
 train_episodes: 500
 gamma: 0.99
-lr: 2e-3
+
+# PG
+lr_pg: 2e-5
+
+# A2C
+lr_a2c: 2e-5
+ent_coeff: 0.01
+normalize_a2c: false
+
+# DDPG
 actor_lr: 5e-5
 critic_lr: 5e-4
 tau: 0.001
 batch_size: 64
 buffer_size: 100000
-normalize: false
+normalize_ddpg: false
 
 testing: false
 model_path: default
