@@ -2,13 +2,19 @@ env_name: 'BipedalWalker-v3'
 env_parameters:
   hardcore: false
 
-seed: 100
-exp_name: project_BW_easy
+seed: 123
+exp_name: BW_easy
 run_id: ??? # decided during execution
 
-train_episodes: 1000
+train_episodes: 500
 gamma: 0.99
 lr: 2e-3
+actor_lr: 5e-5
+critic_lr: 5e-4
+tau: 0.001
+batch_size: 64
+buffer_size: 100000
+normalize: false
 
 testing: false
 model_path: default
@@ -17,7 +23,7 @@ save_video: true
 save_logging: true
 save_model: true
 use_wandb: false
-silent: false
+silent: true
 
 run_suffix: 0
 # ref: https://stackoverflow.com/questions/65104134/disable-file-output-of-hydra

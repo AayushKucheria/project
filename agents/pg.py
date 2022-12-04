@@ -9,7 +9,15 @@ from common import helper as h
 
 
 # Use CUDA for storing tensors / calculations if it's available
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+if torch.cuda.is_available():
+    device = torch.device('cuda')
+# elif torch.backends.mps.is_available():
+#     device = torch.device('mps')
+else:
+    device = torch.device('cpu')
+
+print("If PG: Using device:", device)
 
 # Initialisation function for neural network layers
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
@@ -99,7 +107,7 @@ class PG(object):
         loss = torch.mean(weighted_probs)  
 
         # Backprop gradients
-        loss.backward()  
+        loss.backward()
 
         # Do the optimizer step 
         self.optimizer.step() 
@@ -107,7 +115,7 @@ class PG(object):
         ########## Your code ends here. ##########
 
         # if you want to log something in wandb, you can put them inside the {}, otherwise, just leave it empty.
-        return {'logstd': self.policy.actor_logstd.cpu().detach().numpy()}
+        return {}#{'logstd': self.policy.actor_logstd.cpu().detach().numpy()}
 
 
     def get_action(self, observation, evaluation=False):
@@ -147,7 +155,7 @@ class PG(object):
     def record(self, action_prob, reward):
         """ Store agent's and env's outcomes to update the agent."""
         self.action_probs.append(action_prob)
-        self.rewards.append(torch.tensor([reward]))
+        self.rewards.append(torch.tensor([reward], dtype=torch.float32))
 
     def save(self, filepath):
         torch.save(self.policy.state_dict(), filepath)

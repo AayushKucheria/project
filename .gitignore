@@ -1,6 +1,7 @@
 wandb/
 outputs/
 results/
+models/
 __pycache__/
 *.log
 .DS_Store

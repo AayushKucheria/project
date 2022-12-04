@@ -1,6 +1,5 @@
 import sys, os
 sys.path.insert(0, os.path.abspath(".."))
-os.environ["MUJOCO_GL"] = "egl" # for pygame rendering
 import time
 from pathlib import Path
 
@@ -9,10 +8,19 @@ import gym
 import hydra
 import wandb
 import warnings
+import numpy as np
+from tqdm import tqdm
+
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
+if torch.backends.mps.is_available():
+    os.environ["MUJOCO_GL"] = "glfw" # for pygame rendering
+else:
+    os.environ["MUJOCO_GL"] = "egl" # for pygame rendering
+
 from agents.pg import PG
+from agents.ddpg import DDPG
 from common import helper as h
 from common import logger as logger
 
@@ -31,8 +39,12 @@ def train(agent, env):
     while not done:
         # PG  
         action, log_prob = agent.get_action(obs)
+        obs_old = obs.copy()
         obs, reward, done, _ = env.step(to_numpy(action))
-        agent.record(log_prob, reward)
+        if log_prob:
+            agent.record(log_prob, reward)
+        else:
+            agent.record(obs_old, action, obs, reward, done)
         reward_sum += reward
         timesteps += 1
     
@@ -84,10 +96,6 @@ def main(cfg):
     if cfg.save_logging:
         h.make_dir(work_dir/"logging")
         L = logger.Logger() # create a simple logger to record stats
-    
-    # Model filename
-    if cfg.model_path == 'default':
-        cfg.model_path = work_dir/'model'/f'{cfg.env_name}_params.pt'
 
     # Use wandb to store stats
     if cfg.use_wandb and not cfg.testing:
@@ -114,35 +122,91 @@ def main(cfg):
                                         name_prefix=cfg.exp_name)
 
     # Get state and action dimensionality
-    state_dim = env.observation_space.shape[0]
+    state_dim = env.observation_space.shape
     action_dim = env.action_space.shape[0]
+    max_action = float(env.action_space.high[0])
 
     # Initialize the agent
-    agent = PG(state_dim, action_dim, cfg.lr, cfg.gamma)
+    # agent = PG(state_dim, action_dim, cfg.lr, cfg.gamma)
 
-    if not cfg.testing: # training
-        for ep in range(cfg.train_episodes):
-            # collect data and update the policy
-            train_info = train(agent, env)
-            train_info.update({'episodes': ep})
+    print(cfg)
+
+    def do_round(x):
+        if agent_type == 'PG':
+            lr = x[0]
+            agent = PG(state_dim[0], action_dim, lr, cfg.gamma)
+        elif agent_type == 'DDPG':
+            actor_lr, critic_lr, tau, batch_size = x
+            agent = DDPG(state_dim, action_dim, max_action, actor_lr, critic_lr, cfg.gamma, tau, batch_size, normalize=cfg.normalize, buffer_size=cfg.buffer_size)
+        else:
+            raise ValueError('Unknown agent type')
+
+        # Model filename
+        if cfg.model_path == 'default':
+            if agent_type == 'PG':
+                model_path = work_dir/'model'/f'{cfg.exp_name}-{cfg.env_name}-{str(cfg.seed)}-{str(cfg.run_id)}-pg.pt'
+            elif agent_type == 'DDPG':
+                model_path = work_dir/'model'/f'{cfg.exp_name}-{cfg.env_name}-{str(cfg.seed)}-{str(cfg.run_id)}-ddpg'
+                h.make_dir(model_path)
+        else:
+            model_path = cfg.model_path
+
+        print(agent.__class__.__name__, x)
+
+        if not cfg.testing: # training
+            rewards = []
+            for ep in tqdm(range(cfg.train_episodes)):
+                # collect data and update the policy
+                train_info = train(agent, env)
+                train_info.update({'episode': ep})
+                
+                if cfg.use_wandb:
+                    wandb.log(train_info)
+                if cfg.save_logging:
+                    L.log(**train_info)
+                if (not cfg.silent) and (ep % 10 == 0):
+                    print(train_info)
+                rewards.append(train_info['ep_reward'])
             
-            if cfg.use_wandb:
-                wandb.log(train_info)
-            if cfg.save_logging:
-                L.log(**train_info)
-            if (not cfg.silent) and (ep % 100 == 0):
-                print({"ep": ep, **train_info})
+            if cfg.save_model:
+                agent.save(model_path)
+
+        else: # testing
+            print("Loading model from", model_path, "...")
+            # load model
+            agent.load(model_path)
+            print('Testing ...')
+            test(agent, env, num_episodes=10)
         
-        if cfg.save_model:
-            agent.save(cfg.model_path)
+        # print("Max reward over training:", np.max(rewards))
+        # print("Median reward over last 100 episodes:", np.median(rewards[-100:]))
+    
+        return -np.median(rewards[-100:])
 
-    else: # testing
-        print("Loading model from", cfg.model_path, "...")
-        # load model
-        agent.load(cfg.model_path)
-        print('Testing ...')
-        test(agent, env, num_episodes=10)
+    hyperparameter_search = True
+    agent_type = 'PG'
 
+    if hyperparameter_search:
+        from skopt import gp_minimize
+        from skopt.space import Real, Integer
+
+        if agent_type == 'PG':
+            space = [Real(1e-5, 1e-3, name='lr', prior='log-uniform')]
+        elif agent_type == 'DDPG':
+            space = [Real(1e-5, 1e-3, name='actor_lr', prior='log-uniform'),
+                    Real(1e-5, 1e-3, name='critic_lr', prior='log-uniform'),
+                    Real(1e-5, 1e-3, name='tau', prior='log-uniform'),
+                    Integer(32, 1024, name='batch_size'),]
+
+        res = gp_minimize(do_round, space, n_calls=30, n_random_starts=3, verbose=True)
+        print("*"*80)
+        print("Best parameters:", res.x)
+        print("Best reward:", -res.fun)
+    else:
+        if agent_type == 'PG':
+            do_round([cfg.lr])
+        elif agent_type == 'DDPG':
+            do_round([cfg.actor_lr, cfg.critic_lr, cfg.tau, cfg.batch_size])
 # Entry point of the script
 if __name__ == "__main__":
     main()
