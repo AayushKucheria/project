@@ -3,7 +3,7 @@ env_parameters:
   hardcore: true
 
 seed: 100
-exp_name: BW_medium
+exp_name: BipedalWalker-v3_medium
 run_id: ??? # decided during execution
 
 train_episodes: 20000

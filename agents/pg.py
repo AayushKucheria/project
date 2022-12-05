@@ -24,10 +24,11 @@ class Policy(nn.Module):
         # Initialise a neural network with two hidden layers (64 neurons per layer)
         self.actor_mean = nn.Sequential(
             layer_init(nn.Linear(state_dim, 64)),
-            nn.Tanh(),
+            nn.ReLU(),
             layer_init(nn.Linear(64, 64)),
-            nn.Tanh(),
+            nn.ReLU(),
             layer_init(nn.Linear(64, action_dim), std=0.01),
+            nn.Tanh()
         )
 
         # TODO: Task 1: Implement actor_logstd as a torch tensor
@@ -128,7 +129,9 @@ class PG(object):
         # act_logprob = 0
 
         # Pass state x through the policy network (T1)
-        dist = self.policy.forward(x)  
+        self.policy.eval()
+        dist = self.policy.forward(x)
+        self.policy.train()
         # Return mean if evaluation, else sample from the distribution
         if evaluation:
             action = dist.mean 
