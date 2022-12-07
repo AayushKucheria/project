@@ -77,14 +77,14 @@ def test(agent, env, num_episodes=10):
             test_reward += reward
         
         total_test_reward += test_reward
-        logger.info(f"Episode {ep}: {test_reward}")
+        print(f"Episode {ep}: {test_reward}")
     
-    logger.info(f"Average reward over {num_episodes} episodes: {total_test_reward/num_episodes}")
+    print(f"Average reward over {num_episodes} episodes: {total_test_reward/num_episodes}")
 
     return total_test_reward/num_episodes
 
 # The main function
-@hydra.main(config_path="configs", config_name="bipedalwalker_easy") # bipedalwalker_easy lunarlander_continuous_medium
+@hydra.main(config_path="configs", config_name="lunarlander_continuous_medium") # bipedalwalker_easy lunarlander_continuous_medium
 def main(cfg):
 
     # Set seed for reproducibility
@@ -174,7 +174,7 @@ def main(cfg):
                 # collect data and update the policy
                 train_info = train(agent, env)
                 train_info.update({'episode': ep})
-                
+
                 if cfg.use_wandb:
                     wandb.log(train_info)
                 if cfg.save_logging:
@@ -188,17 +188,16 @@ def main(cfg):
                     h.make_dir(model_path)
                 agent.save(model_path)
 
+            # print("Max reward over training:", np.max(rewards))
+            # print("Median reward over last 100 episodes:", np.median(rewards[-100:]))
+            return -np.median(rewards[-100:])
+
         else: # testing
             print("Loading model from", model_path, "...")
             # load model
             agent.load(model_path)
             print('Testing ...')
-            test(agent, env, num_episodes=10)
-        
-        # print("Max reward over training:", np.max(rewards))
-        # print("Median reward over last 100 episodes:", np.median(rewards[-100:]))
-    
-        return -np.median(rewards[-100:])
+            test(agent, env, num_episodes=50)
 
     hyperparameter_search = "one"
     agent_type = 'DDPG'

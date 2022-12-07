@@ -1,4 +1,4 @@
-env_name: 'LunarLanderContinuous-v2'
+env_name: 'LunarLander-v2'
 env_parameters:
   continuous: true
   gravity: -9.81
