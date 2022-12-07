@@ -94,8 +94,6 @@ class PPO(object):
         return loss.item()
 
 
-
-
     def get_action(self, state, evaluation=False):
 
         # Convert state to tensor
