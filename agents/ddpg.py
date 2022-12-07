@@ -193,7 +193,7 @@ class DDPG(object):
         if self.state_scaler is not None:
             x = self.state_scaler.transform(x)
 
-        if self.buffer_ptr < self.random_transition:  # collect random trajectories for better exploration.
+        if self.buffer_ptr < self.random_transition and not evaluation:  # collect random trajectories for better exploration.
             action = torch.rand(self.action_dim)
         else:
             ########## Your code starts here. ##########

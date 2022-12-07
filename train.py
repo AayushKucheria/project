@@ -182,8 +182,9 @@ def main(cfg):
                 if (not cfg.silent) and (ep % 10 == 0):
                     print(train_info)
                 rewards.append(train_info['ep_reward'])
-            
+
             if cfg.save_model:
+                print("Saving model to", model_path, "...")
                 if agent_type != "PG":
                     h.make_dir(model_path)
                 agent.save(model_path)
