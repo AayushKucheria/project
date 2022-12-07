@@ -84,9 +84,9 @@ def test(agent, env, num_episodes=10):
     return total_test_reward/num_episodes
 
 # The main function
-@hydra.main(config_path="configs", config_name="lunarlander_continuous_easy")
+@hydra.main(config_path="configs", config_name="bipedalwalker_easy") # bipedalwalker_easy lunarlander_continuous_medium
 def main(cfg):
-    
+
     # Set seed for reproducibility
     h.set_seed(cfg.seed)
 
@@ -118,7 +118,7 @@ def main(cfg):
             video_path = work_dir/'video'/cfg.env_name/'test'
         # During training, save every 50th episode
         else:
-            ep_trigger = 50
+            ep_trigger = 100
             video_path = work_dir/'video'/cfg.env_name/'train'
         env = gym.wrappers.RecordVideo(env, video_path,
                                         episode_trigger=lambda x: x % ep_trigger == 0,
@@ -139,11 +139,11 @@ def main(cfg):
     def do_round(x):
         if agent_type == 'PG':
             lr = x[0]
-            agent = PG(state_dim[0], action_dim, lr, cfg.gamma)
+            agent = PG(state_dim[0], action_dim, lr, cfg.gamma, cfg.layers)
         elif agent_type == 'DDPG':
             actor_lr, critic_lr, tau, batch_size = x
             agent = DDPG(state_dim, action_dim, max_action, actor_lr, critic_lr, gamma=cfg.gamma, tau=tau, batch_size=batch_size, 
-                    uniform=cfg.uniform, actor_layers=cfg.actor_layers, critic_layers=cfg.critic_layers,
+                    uniform=cfg.uniform, actor_layers=cfg.actor_layers, critic_layers=cfg.critic_layers, noise_std=cfg.noise_std,
                     normalize=cfg.normalize_ddpg, use_ou=cfg.use_ou, buffer_size=cfg.buffer_size, weight_decay=cfg.weight_decay)
         elif agent_type == 'A2C':
             lr = x[0]

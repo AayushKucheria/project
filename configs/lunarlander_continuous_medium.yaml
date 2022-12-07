@@ -6,7 +6,7 @@ env_parameters:
   wind_power: 15
   turbulence_power: 1.5
 
-seed: 123
+seed: 1
 exp_name: LunarLander-v2_contin_medium
 run_id: ??? # decided during execution
 train_episodes: 2000
@@ -14,6 +14,7 @@ gamma: 0.98
 
 # PG
 lr_pg: 3e-4
+layers: [512, 256, 64]
 
 # DDPG
 actor_lr: 1e-3
@@ -24,6 +25,7 @@ buffer_size: 200000
 normalize_ddpg: false
 use_ou: false
 weight_decay: 0
+noise_std: 0.1
 uniform: false
 actor_layers: [512,256,64]
 critic_layers: [512,256,64]

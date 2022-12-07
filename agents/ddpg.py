@@ -12,26 +12,26 @@ from common.buffer import ReplayBuffer
 # Use CUDA for storing tensors / calculations if it's available
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+def create_net(in_dim, layers, out_dim):
+    layers = [in_dim] + layers
+
+    net = []
+    for i in range(1,len(layers)):
+        net.append(nn.Linear(layers[i-1], layers[i]))
+        net.append(nn.LayerNorm(layers[i]))
+        net.append(nn.ReLU())
+
+    net.append(nn.Linear(layers[-1], out_dim))
+
+    return nn.Sequential(*net)
+
 # Actor-critic agent
 class Policy(nn.Module):
     def __init__(self, state_dim, action_dim, max_action, layers, uniform=False):
         super().__init__()
-
-
         self.max_action = max_action
-        self.actor = []
-
-        layers = [state_dim] + layers
-
-        for i in range(1,len(layers)):
-            self.actor.append(nn.Linear(layers[i-1], layers[i]))
-            self.actor.append(nn.LayerNorm(layers[i]))
-            self.actor.append(nn.ReLU())
-
-        self.actor.append(nn.Linear(layers[-1], action_dim))
-        self.actor.append(nn.Tanh())
-
-        self.actor = nn.Sequential(*self.actor)
+        self.actor = create_net(state_dim, layers, action_dim)
+        self.actor.add_module('tanh', nn.Tanh())
 
         if uniform:
             def init_weights(m):
@@ -48,18 +48,7 @@ class Policy(nn.Module):
 class Critic(nn.Module):
     def __init__(self, state_dim, action_dim, layers, uniform=False):
         super().__init__()
-        self.value = []
-
-        layers = [state_dim + action_dim] + layers
-
-        for i in range(1,len(layers)):
-            self.value.append(nn.Linear(layers[i-1], layers[i]))
-            self.value.append(nn.LayerNorm(layers[i]))
-            self.value.append(nn.ReLU())
-
-        self.value.append(nn.Linear(layers[-1], 1))
-
-        self.value = nn.Sequential(*self.value)
+        self.value = create_net(state_dim + action_dim, layers, 1)
 
         if uniform:
             def init_weights(m):
@@ -92,6 +81,7 @@ class DDPG(object):
             buffer_size=1e6,
             weight_decay=0,
             uniform=False,
+            noise_std=0.01,
     ):
         state_dim = state_shape[0]
         self.action_dim = action_dim
@@ -115,6 +105,7 @@ class DDPG(object):
         else:
             self.noise = None
         
+        self.noise_std = noise_std
         self.batch_size = batch_size
         self.gamma = gamma
         self.tau = tau
@@ -205,7 +196,6 @@ class DDPG(object):
         if self.buffer_ptr < self.random_transition:  # collect random trajectories for better exploration.
             action = torch.rand(self.action_dim)
         else:
-            expl_noise = 0.1  # the stddev of the expl_noise if not evaluation
             ########## Your code starts here. ##########
             # Use the policy to calculate the action to execute
             # if evaluation equals False, add normal noise to the action, where the std of the noise is expl_noise
@@ -217,10 +207,8 @@ class DDPG(object):
             self.pi.train()
             
             if not evaluation:
-                if self.noise is not None:
-                    action += torch.from_numpy(self.noise()).float().to(device)
-                else:
-                    action += expl_noise * torch.rand_like(action)
+                std = torch.ones_like(action) * self.noise_std
+                action += torch.normal(action, std)
 
             ########## Your code ends here. ##########
 

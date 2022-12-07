@@ -16,20 +16,27 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
     torch.nn.init.constant_(layer.bias, bias_const)
     return layer
 
+def create_net(in_dim, layers, out_dim):
+    layers = [in_dim] + layers
+
+    net = []
+    for i in range(1,len(layers)):
+        net.append(layer_init(nn.Linear(layers[i-1], layers[i])))
+        net.append(nn.LayerNorm(layers[i]))
+        net.append(nn.ReLU())
+
+    net.append(layer_init(nn.Linear(layers[-1], out_dim), std=0.01))
+    net.append(nn.Tanh())
+
+    return nn.Sequential(*net)
+
 # This class defines the neural network policy
 class Policy(nn.Module):
-    def __init__(self, state_dim, action_dim):
+    def __init__(self, state_dim, action_dim, layers):
         super(Policy, self).__init__()
 
         # Initialise a neural network with two hidden layers (64 neurons per layer)
-        self.actor_mean = nn.Sequential(
-            layer_init(nn.Linear(state_dim, 64)),
-            nn.ReLU(),
-            layer_init(nn.Linear(64, 64)),
-            nn.ReLU(),
-            layer_init(nn.Linear(64, action_dim), std=0.01),
-            nn.Tanh()
-        )
+        self.actor_mean = create_net(state_dim, layers, action_dim)
 
         # TODO: Task 1: Implement actor_logstd as a torch tensor
         # Task 2: Implement actor_logstd as a learnable parameter
@@ -56,10 +63,10 @@ class Policy(nn.Module):
 
 # Class for the Policy Gradient algorithm
 class PG(object):
-    def __init__(self, state_dim, action_dim, lr, gamma):
+    def __init__(self, state_dim, action_dim, lr, gamma, layers):
 
         # Define the neural network policy
-        self.policy = Policy(state_dim, action_dim).to(device)
+        self.policy = Policy(state_dim, action_dim, layers).to(device)
 
         # Create an optimizer
         self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=lr)

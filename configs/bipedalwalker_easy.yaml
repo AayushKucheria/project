@@ -2,15 +2,16 @@ env_name: 'BipedalWalker-v3'
 env_parameters:
   hardcore: false
 
-seed: 123
+seed: 1
 exp_name: BipedalWalker-v3_easy
 run_id: ??? # decided during execution
 
-train_episodes: 500
+train_episodes: 1300
 gamma: 0.98
 
 # PG (-102.113)
 lr_pg: 3e-4
+layers: [512,512,64]
 
 # A2C
 lr_a2c: 2e-5
@@ -34,9 +35,10 @@ buffer_size: 200000
 normalize_ddpg: false
 use_ou: false
 weight_decay: 0
-uniform: false
-actor_layers: [1024,512,256]
-critic_layers: [1024,512,256]
+noise_std: 0.1
+uniform: true
+actor_layers: [512,512,64]
+critic_layers: [512,512,64]
 
 testing: false
 model_path: default
