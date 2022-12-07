@@ -6,39 +6,37 @@ seed: 1
 exp_name: BipedalWalker-v3_easy
 run_id: ??? # decided during execution
 
-train_episodes: 1300
-gamma: 0.98
+agent_type: "DDPG"
 
-# PG (-102.113)
-lr_pg: 3e-4
-layers: [512,512,64]
+# PG
+pg:
+  train_episodes: 2000
+  gamma: 0.98
+  lr: 3e-4
+  layers: [512,512,64]
 
 # A2C
-lr_a2c: 2e-5
-ent_coeff: 0.01
-normalize_a2c: false
+a2c:
+  lr: 2e-5
+  ent_coeff: 0.01
+  normalize: false
 
-# # DDPG (-23.3076)
-# actor_lr: 1e-4
-# critic_lr: 8e-4
-# tau: 0.0003
-# batch_size: 64
-# buffer_size: 100000
-# normalize_ddpg: false
-
-# DDPG https://github.com/navuboy/ddpg_biped/blob/master/walker_controller/src/ddpg2/
-actor_lr: 1e-3
-critic_lr: 1e-3
-tau: 1e-3
-batch_size: 64
-buffer_size: 200000
-normalize_ddpg: false
-use_ou: false
-weight_decay: 0
-noise_std: 0.1
-uniform: true
-actor_layers: [512,512,64]
-critic_layers: [512,512,64]
+# DDPG
+ddpg:
+  train_episodes: 1300
+  gamma: 0.98
+  actor_lr: 1e-3
+  critic_lr: 1e-3
+  tau: 1e-3
+  batch_size: 64
+  buffer_size: 200000
+  normalize: false
+  use_ou: false
+  weight_decay: 0
+  noise_std: 0.1
+  uniform: true
+  actor_layers: [512,512,64]
+  critic_layers: [512,512,64]
 
 testing: false
 model_path: default

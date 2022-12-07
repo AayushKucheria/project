@@ -64,7 +64,7 @@ def train(agent, env):
 @torch.no_grad()
 def test(agent, env, num_episodes=10):
 
-    total_test_reward = 0
+    test_rewards = []
     for ep in range(num_episodes):
         obs, done = env.reset(), False
         test_reward = 0
@@ -76,12 +76,14 @@ def test(agent, env, num_episodes=10):
 
             test_reward += reward
         
-        total_test_reward += test_reward
+        test_rewards.append(test_reward)
         print(f"Episode {ep}: {test_reward}")
     
-    print(f"Average reward over {num_episodes} episodes: {total_test_reward/num_episodes}")
+    print(f"Average reward over {num_episodes} episodes: {np.mean(test_rewards)}")
+    print(f"Std over {num_episodes} episodes: {np.std(test_rewards)}")
+    print(test_rewards)
 
-    return total_test_reward/num_episodes
+    return np.mean(test_rewards), np.std(test_rewards)
 
 # The main function
 @hydra.main(config_path="configs", config_name="lunarlander_continuous_medium") # bipedalwalker_easy lunarlander_continuous_medium
@@ -139,15 +141,15 @@ def main(cfg):
     def do_round(x):
         if agent_type == 'PG':
             lr = x[0]
-            agent = PG(state_dim[0], action_dim, lr, cfg.gamma, cfg.layers)
+            agent = PG(state_dim[0], action_dim, lr, cfg.pg.gamma, cfg.pg.layers)
         elif agent_type == 'DDPG':
             actor_lr, critic_lr, tau, batch_size = x
-            agent = DDPG(state_dim, action_dim, max_action, actor_lr, critic_lr, gamma=cfg.gamma, tau=tau, batch_size=batch_size, 
-                    uniform=cfg.uniform, actor_layers=cfg.actor_layers, critic_layers=cfg.critic_layers, noise_std=cfg.noise_std,
-                    normalize=cfg.normalize_ddpg, use_ou=cfg.use_ou, buffer_size=cfg.buffer_size, weight_decay=cfg.weight_decay)
+            agent = DDPG(state_dim, action_dim, max_action, actor_lr, critic_lr, gamma=cfg.ddpg.gamma, tau=tau, batch_size=batch_size, 
+                    uniform=cfg.ddpg.uniform, actor_layers=cfg.ddpg.actor_layers, critic_layers=cfg.ddpg.critic_layers, noise_std=cfg.ddpg.noise_std,
+                    normalize=cfg.ddpg.normalize, use_ou=cfg.ddpg.use_ou, buffer_size=cfg.ddpg.buffer_size, weight_decay=cfg.ddpg.weight_decay)
         elif agent_type == 'A2C':
             lr = x[0]
-            agent = A2C(state_dim[0], action_dim, lr, cfg.gamma, cfg.ent_coeff, cfg.normalize_a2c)
+            agent = A2C(state_dim[0], action_dim, lr, cfg.a2c.gamma, cfg.a2c.ent_coeff, cfg.a2c.normalize)
         else:
             raise ValueError('Unknown agent type')
 
@@ -155,10 +157,15 @@ def main(cfg):
         if cfg.model_path == 'default':
             if agent_type == 'PG':
                 model_path = work_dir/'model'/f'{cfg.exp_name}-{str(cfg.seed)}-{str(cfg.run_id)}-pg.pt'
+                train_episodes = cfg.pg.train_episodes
             elif agent_type == 'DDPG':
                 model_path = work_dir/'model'/f'{cfg.exp_name}-{str(cfg.seed)}-{str(cfg.run_id)}-ddpg'
+                train_episodes = cfg.ddpg.train_episodes
             elif agent_type == 'A2C':
                 model_path = work_dir/'model'/f'{cfg.exp_name}-{str(cfg.seed)}-{str(cfg.run_id)}-a2c'
+                train_episodes = cfg.a2c.train_episodes
+            else:
+                raise ValueError('Unknown agent type')
         else:
             model_path = cfg.model_path
 
@@ -169,8 +176,9 @@ def main(cfg):
             print("Critic architecture", agent.q.value)
 
         if not cfg.testing: # training
+    
             rewards = []
-            for ep in tqdm(range(cfg.train_episodes)):
+            for ep in tqdm(range(train_episodes)):
                 # collect data and update the policy
                 train_info = train(agent, env)
                 train_info.update({'episode': ep})
@@ -201,7 +209,7 @@ def main(cfg):
             test(agent, env, num_episodes=50)
 
     hyperparameter_search = "one"
-    agent_type = 'DDPG'
+    agent_type = cfg.agent_type
 
     if hyperparameter_search == "gp":
         from skopt import gp_minimize
@@ -216,6 +224,8 @@ def main(cfg):
                     Real(1e-5, 1e-2, name='critic_lr', prior='log-uniform'),
                     Real(1e-5, 1e-2, name='tau', prior='log-uniform'),
                     Integer(32, 1024, name='batch_size', prior='log-uniform'),]
+        else:
+            raise ValueError('Unknown agent type')
 
         res = gp_minimize(do_round, space, n_calls=50, n_random_starts=5, verbose=True)
         print("*"*80)
@@ -235,19 +245,23 @@ def main(cfg):
             cfg.uniform = uniform
             cfg.gamma = gamma
             if agent_type == 'PG':
-                do_round([cfg.lr_pg])
+                do_round([cfg.pg.lr])
             elif agent_type == 'DDPG':
-                do_round([cfg.actor_lr, cfg.critic_lr, cfg.tau, cfg.batch_size])
+                do_round([cfg.ddpg.actor_lr, cfg.ddpg.critic_lr, cfg.ddpg.tau, cfg.ddpg.batch_size])
             elif agent_type == 'A2C':
-                do_round([cfg.lr_a2c])
+                do_round([cfg.a2c.lr])
+            else:
+                raise ValueError('Unknown agent type')
 
     else:
         if agent_type == 'PG':
-            do_round([cfg.lr_pg])
+            do_round([cfg.pg.lr])
         elif agent_type == 'DDPG':
-            do_round([cfg.actor_lr, cfg.critic_lr, cfg.tau, cfg.batch_size])
+            do_round([cfg.ddpg.actor_lr, cfg.ddpg.critic_lr, cfg.ddpg.tau, cfg.ddpg.batch_size])
         elif agent_type == 'A2C':
-            do_round([cfg.lr_a2c])
+            do_round([cfg.a2c.lr])
+        else:
+            raise ValueError('Unknown agent type')
 # Entry point of the script
 if __name__ == "__main__":
     main()

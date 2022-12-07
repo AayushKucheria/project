@@ -9,26 +9,32 @@ env_parameters:
 seed: 1
 exp_name: LunarLander-v2_contin_medium
 run_id: ??? # decided during execution
-train_episodes: 2000
-gamma: 0.98
+
+agent_type: "PG"
 
 # PG
-lr_pg: 3e-4
-layers: [512, 256, 64]
+pg:
+  train_episodes: 4000
+  gamma: 0.98
+  lr: 3e-4
+  layers: [512, 256, 64]
 
 # DDPG
-actor_lr: 1e-3
-critic_lr: 1e-3
-tau: 1e-3
-batch_size: 64
-buffer_size: 200000
-normalize_ddpg: false
-use_ou: false
-weight_decay: 0
-noise_std: 0.1
-uniform: false
-actor_layers: [512,256,64]
-critic_layers: [512,256,64]
+ddpg:
+  train_episodes: 2000
+  gamma: 0.98
+  actor_lr: 1e-3
+  critic_lr: 1e-3
+  tau: 1e-3
+  batch_size: 64
+  buffer_size: 200000
+  normalize: false
+  use_ou: false
+  weight_decay: 0
+  noise_std: 0.1
+  uniform: false
+  actor_layers: [512,256,64]
+  critic_layers: [512,256,64]
 
 testing: false
 model_path: default

@@ -2,27 +2,34 @@ env_name: 'BipedalWalker-v3'
 env_parameters:
   hardcore: true
 
-seed: 100
+seed: 42
 exp_name: BipedalWalker-v3_medium
 run_id: ??? # decided during execution
 
-train_episodes: 20000
-gamma: 0.98
-lr: 2e-3
+agent_type: "DDPG"
+
+# PG
+pg:
+  train_episodes: 20000
+  gamma: 0.98
+  lr: 2e-3
 
 # DDPG
-actor_lr: 1e-3
-critic_lr: 1e-3
-tau: 1e-3
-batch_size: 64
-buffer_size: 200000
-normalize_ddpg: false
-use_ou: false
-weight_decay: 0
-noise_std: 0.15
-uniform: true
-actor_layers: [512,512,256,64]
-critic_layers: [512,512,256,64]
+ddpg:
+  train_episodes: 20000
+  gamma: 0.98
+  actor_lr: 1e-3
+  critic_lr: 1e-3
+  tau: 1e-3
+  batch_size: 64
+  buffer_size: 200000
+  normalize: false
+  use_ou: false
+  weight_decay: 0
+  noise_std: 0.15
+  uniform: true
+  actor_layers: [512,512,256,64]
+  critic_layers: [512,512,256,64]
 
 testing: false
 model_path: default
