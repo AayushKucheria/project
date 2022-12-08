@@ -26,7 +26,7 @@ ddpg:
   normalize: false
   use_ou: false
   weight_decay: 0
-  noise_std: 0.15
+  noise_std: 0.1
   uniform: true
   actor_layers: [512,512,256,64]
   critic_layers: [512,512,256,64]

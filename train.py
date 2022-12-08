@@ -14,10 +14,10 @@ from tqdm import tqdm
 warnings.filterwarnings("ignore", category=UserWarning)
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-if torch.backends.mps.is_available():
-    os.environ["MUJOCO_GL"] = "glfw" # for pygame rendering
-else:
+if torch.cuda.is_available():
     os.environ["MUJOCO_GL"] = "egl" # for pygame rendering
+else:
+    os.environ["MUJOCO_GL"] = "glfw" # for pygame rendering
 
 from agents.pg import PG
 from agents.ddpg import DDPG
@@ -86,7 +86,7 @@ def test(agent, env, num_episodes=10):
     return np.mean(test_rewards), np.std(test_rewards)
 
 # The main function
-@hydra.main(config_path="configs", config_name="lunarlander_continuous_medium") # bipedalwalker_easy lunarlander_continuous_medium
+@hydra.main(config_path="configs", config_name="bipedalwalker_medium") # bipedalwalker_easy lunarlander_continuous_medium
 def main(cfg):
 
     # Set seed for reproducibility

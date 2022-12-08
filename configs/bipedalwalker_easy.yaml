@@ -10,7 +10,7 @@ agent_type: "DDPG"
 
 # PG
 pg:
-  train_episodes: 2000
+  train_episodes: 3000
   gamma: 0.98
   lr: 3e-4
   layers: [512,512,64]
