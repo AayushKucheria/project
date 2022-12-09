@@ -14,7 +14,7 @@ agent_type: "PG"
 
 # PG
 pg:
-  train_episodes: 4000
+  train_episodes: 3500
   gamma: 0.98
   lr: 3e-4
   layers: [512, 256, 64]

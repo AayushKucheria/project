@@ -142,30 +142,23 @@ def main(cfg):
         if agent_type == 'PG':
             lr = x[0]
             agent = PG(state_dim[0], action_dim, lr, cfg.pg.gamma, cfg.pg.layers)
+            train_episodes = cfg.pg.train_episodes
         elif agent_type == 'DDPG':
             actor_lr, critic_lr, tau, batch_size = x
             agent = DDPG(state_dim, action_dim, max_action, actor_lr, critic_lr, gamma=cfg.ddpg.gamma, tau=tau, batch_size=batch_size, 
                     uniform=cfg.ddpg.uniform, actor_layers=cfg.ddpg.actor_layers, critic_layers=cfg.ddpg.critic_layers, noise_std=cfg.ddpg.noise_std,
                     normalize=cfg.ddpg.normalize, use_ou=cfg.ddpg.use_ou, buffer_size=cfg.ddpg.buffer_size, weight_decay=cfg.ddpg.weight_decay)
+            train_episodes = cfg.ddpg.train_episodes
         elif agent_type == 'A2C':
             lr = x[0]
             agent = A2C(state_dim[0], action_dim, lr, cfg.a2c.gamma, cfg.a2c.ent_coeff, cfg.a2c.normalize)
+            train_episodes = cfg.a2c.train_episodes
         else:
             raise ValueError('Unknown agent type')
 
         # Model filename
         if cfg.model_path == 'default':
-            if agent_type == 'PG':
-                model_path = work_dir/'model'/f'{cfg.exp_name}-{str(cfg.seed)}-{str(cfg.run_id)}-pg.pt'
-                train_episodes = cfg.pg.train_episodes
-            elif agent_type == 'DDPG':
-                model_path = work_dir/'model'/f'{cfg.exp_name}-{str(cfg.seed)}-{str(cfg.run_id)}-ddpg'
-                train_episodes = cfg.ddpg.train_episodes
-            elif agent_type == 'A2C':
-                model_path = work_dir/'model'/f'{cfg.exp_name}-{str(cfg.seed)}-{str(cfg.run_id)}-a2c'
-                train_episodes = cfg.a2c.train_episodes
-            else:
-                raise ValueError('Unknown agent type')
+            model_path = work_dir/'model'/f'{cfg.exp_name}-{str(cfg.seed)}-{str(cfg.run_id)}-{agent_type}'
         else:
             model_path = cfg.model_path
 
@@ -189,12 +182,16 @@ def main(cfg):
                     L.log(**train_info)
                 if (not cfg.silent) and (ep % 10 == 0):
                     print(train_info)
+                if cfg.save_model and (ep % 100 == 0):
+                    model_path_ep = f'{model_path}-{str(ep)}'
+                    print("Saving model to", model_path_ep, "...")
+                    h.make_dir(model_path_ep)
+                    agent.save(model_path_ep)
                 rewards.append(train_info['ep_reward'])
 
             if cfg.save_model:
                 print("Saving model to", model_path, "...")
-                if agent_type != "PG":
-                    h.make_dir(model_path)
+                h.make_dir(model_path)
                 agent.save(model_path)
 
             # print("Max reward over training:", np.max(rewards))
@@ -209,7 +206,10 @@ def main(cfg):
             test(agent, env, num_episodes=50)
 
     hyperparameter_search = "one"
-    agent_type = cfg.agent_type
+    if "agent_type" in cfg:
+        agent_type = cfg.agent_type
+    else:
+        agent_type = "DDPG"
 
     if hyperparameter_search == "gp":
         from skopt import gp_minimize

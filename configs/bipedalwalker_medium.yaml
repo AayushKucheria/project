@@ -16,7 +16,7 @@ pg:
 
 # DDPG
 ddpg:
-  train_episodes: 20000
+  train_episodes: 1
   gamma: 0.98
   actor_lr: 1e-3
   critic_lr: 1e-3

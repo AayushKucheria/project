@@ -159,7 +159,7 @@ class PG(object):
         self.rewards.append(torch.tensor([reward], dtype=torch.float32))
 
     def save(self, filepath):
-        torch.save(self.policy.state_dict(), filepath)
+        torch.save(self.policy.state_dict(), f'{filepath}/policy.pt')
 
     def load(self, filepath):
-        self.policy.load_state_dict(torch.load(filepath))
+        self.policy.load_state_dict(torch.load(f'{filepath}/policy.pt'))
