@@ -122,7 +122,7 @@ def main(cfg):
             video_path = work_dir/'video'/cfg.env_name/'test'
         # During training, save every 50th episode
         else:
-            ep_trigger = 100
+            ep_trigger = 200 # 100
             video_path = work_dir/'video'/cfg.env_name/'train'
         env = gym.wrappers.RecordVideo(env, video_path,
                                         episode_trigger=lambda x: x % ep_trigger == 0,
