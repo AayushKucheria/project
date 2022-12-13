@@ -38,6 +38,7 @@ ddpg:
   actor_layers: [512,512,64]
   critic_layers: [512,512,64]
 
+
 testing: false
 model_path: default
 

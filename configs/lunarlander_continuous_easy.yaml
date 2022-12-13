@@ -12,23 +12,8 @@ run_id: ??? # decided during execution
 train_episodes: 2000
 gamma: 0.98
 
-# PG
-lr_pg: 3e-4
-layers: [128,64,32]
+agent_type: "PPO"
 
-# DDPG
-actor_lr: 1e-3
-critic_lr: 1e-3
-tau: 1e-3
-batch_size: 64
-buffer_size: 200000
-normalize_ddpg: false
-use_ou: false
-weight_decay: 0
-noise_std: 0.1
-uniform: false
-actor_layers: [128,64,32]
-critic_layers: [128,64,32]
 
 # PPO
 lr_ppo: 3e-4
@@ -55,3 +40,40 @@ hydra:
     output_subdir: null  
     run:  
         dir: .
+
+
+# PG
+pg:
+  train_episodes: 3000
+  gamma: 0.98
+  lr: 3e-4
+  layers: [512,512,64] # [128,64,32]
+
+# A2C
+a2c:
+  lr: 2e-5
+  ent_coeff: 0.01
+  normalize: false
+
+# DDPG
+ddpg:
+  train_episodes: 1300
+  gamma: 0.98
+  actor_lr: 1e-3
+  critic_lr: 1e-3
+  tau: 1e-3
+  batch_size: 64
+  buffer_size: 200000
+  normalize: false
+  use_ou: false
+  weight_decay: 0
+  noise_std: 0.1
+  uniform: true # false
+  actor_layers: [512,512,64] # [128, 64, 32]
+  critic_layers: [512,512,64] # [128, 64, 32]
+
+ppo:
+  lr: 1e-3
+  batch_size: 64
+  gamma: 0.98
+  train_episodes: 1300
