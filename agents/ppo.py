@@ -68,10 +68,9 @@ class Policy(torch.nn.Module):
 
     def forward(self, state):
         "Returns the action distribution for a given state"
+
         action_mean = self.actor_mean(state) # [Action_dim,]
         action_logstd = self.actor_logstd.reshape_as(action_mean)
-        "Returns the action distribution for a given state"
-        
         action_std = torch.exp(action_logstd)
         probs = Normal(action_mean, action_std)
 
@@ -86,8 +85,6 @@ class PPO(object):
 
         # Check: https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/
 
-
-        # Create an optimizer
         self.optimizer = torch.optim.Adam(self.policy.parameters(), lr=lr, eps=1e-5, ) # eps from 3. in https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/
 
         # Hyperparameters
@@ -97,24 +94,10 @@ class PPO(object):
         # Buffers
         self.states, self.actions, self.log_probs, self.rewards = [], [], [], []
         self.dist = None
-        # Baseline
         self.baseline = 0
 
     def update(self,):
-        # TODO: THere might be a problem with log_probs and action_probs usage in my code. 
-        # I'm not sure if I'm using the right one in the right place.
 
-        # Prepare dataset used to update policy
-        # action_probs = torch.stack(self.log_probs, dim=0) \
-                # .to(device).squeeze(-1) # shape: [batch_size, action_dim]
-        # rewards = torch.stack(self.rewards, dim=0).to(device).squeeze(-1) # shape [batch_size,]
-        # self.log_probs, self.rewards = [], [] # clean buffers
-        # action_probs = torch.stack(self.log_probs, dim=0) \
-                # .to(device).squeeze(-1) # shape: [batch_size, action_dim]
-        # rewards = torch.stack(self.rewards, dim=0).to(device).squeeze(-1) # shape [batch_size,]
-        # self.log_probs, self.rewards = [], [] # clean buffers
-
-        # 
         # OHHHHHHHHHH! I get it now!
         # The old_log_probs are the log_probs of the actions that were taken in the previous episode. That is, the actual log probabilities (not the dist).
         # So we need to store them in self.log_probs.
@@ -131,6 +114,7 @@ class PPO(object):
         discounted_rewards = h.discount_rewards(rewards, self.gamma)
         
         advantage = discounted_rewards - self.baseline # Baseline is a scalar
+        self.baseline = discounted_rewards.mean()
         # I can probably update the baseline here, but I'm not sure how. What I earlier did was to baseline = discounted_rewards
 
         # Surrogate loss
