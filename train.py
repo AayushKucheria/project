@@ -22,6 +22,7 @@ else:
 from agents.pg import PG
 from agents.ddpg import DDPG
 from agents.pg_ac import A2C
+from agents.ppo import PPO
 from common import helper as h
 from common import logger as logger
 
@@ -37,15 +38,16 @@ def train(agent, env):
     reward_sum, timesteps, done = 0, 0, False
     obs = env.reset()
 
+    
     while not done:
         # PG  
-        action, log_prob = agent.get_action(obs)
+        action, log_prob, act_dist = agent.get_action(obs)
         obs_old = obs.copy()
         obs, reward, done, _ = env.step(to_numpy(action))
         if type(log_prob) == tuple:
             agent.record(obs_old, log_prob[0], log_prob[1], reward, done, obs)
         elif log_prob:
-            agent.record(log_prob, reward)
+            agent.record(log_prob, reward, act_dist)
         else:
             agent.record(obs_old, action, obs, reward, done)
         reward_sum += reward
@@ -86,7 +88,7 @@ def test(agent, env, num_episodes=10):
     return np.mean(test_rewards), np.std(test_rewards)
 
 # The main function
-@hydra.main(config_path="configs", config_name="bipedalwalker_medium") # bipedalwalker_easy lunarlander_continuous_medium
+@hydra.main(config_path="configs", config_name="lunarlander_continuous_easy") # bipedalwalker_easy lunarlander_continuous_medium
 def main(cfg):
 
     # Set seed for reproducibility
@@ -153,6 +155,10 @@ def main(cfg):
             lr = x[0]
             agent = A2C(state_dim[0], action_dim, lr, cfg.a2c.gamma, cfg.a2c.ent_coeff, cfg.a2c.normalize)
             train_episodes = cfg.a2c.train_episodes
+        elif agent_type == "PPO":
+            lr, batch_size, gamma = x
+            agent = PPO(state_dim[0], action_dim, lr, gamma) #  cfg.ent_coef, cfg.normalize_ppo, eps=eps, batch_size=batch_size, clip=clip
+            train_episodes = cfg.ppo.train_episodes
         else:
             raise ValueError('Unknown agent type')
 
@@ -162,8 +168,8 @@ def main(cfg):
         else:
             model_path = cfg.model_path
 
-        print(cfg)
-        print(agent.__class__.__name__, x, model_path)
+        # print(cfg)
+        # print(agent.__class__.__name__, x, model_path)
         if agent_type == 'DDPG':
             print("Actor architecture", agent.pi.actor)
             print("Critic architecture", agent.q.value)
@@ -250,6 +256,7 @@ def main(cfg):
                 do_round([cfg.ddpg.actor_lr, cfg.ddpg.critic_lr, cfg.ddpg.tau, cfg.ddpg.batch_size])
             elif agent_type == 'A2C':
                 do_round([cfg.a2c.lr])
+            
             else:
                 raise ValueError('Unknown agent type')
 
@@ -260,6 +267,8 @@ def main(cfg):
             do_round([cfg.ddpg.actor_lr, cfg.ddpg.critic_lr, cfg.ddpg.tau, cfg.ddpg.batch_size])
         elif agent_type == 'A2C':
             do_round([cfg.a2c.lr])
+        elif agent_type == 'PPO':
+            do_round([cfg.ppo.lr, cfg.ppo.batch_size, cfg.ppo.gamma])
         else:
             raise ValueError('Unknown agent type')
 # Entry point of the script
