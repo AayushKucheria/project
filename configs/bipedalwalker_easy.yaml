@@ -6,7 +6,7 @@ seed: 1
 exp_name: BipedalWalker-v3_easy
 run_id: ??? # decided during execution
 
-agent_type: "DDPG"
+agent_type: "PPO"
 
 # PG
 pg:
@@ -38,6 +38,11 @@ ddpg:
   actor_layers: [512,512,64]
   critic_layers: [512,512,64]
 
+ppo:
+  lr: 1e-3
+  batch_size: 64
+  gamma: 0.98
+  train_episodes: 1300
 
 testing: false
 model_path: default

@@ -37,11 +37,13 @@ def train(agent, env):
     # Reset the environment and observe the initial state
     reward_sum, timesteps, done = 0, 0, False
     obs = env.reset()
-
-    
+    act_dist = None
     while not done:
-        # PG  
-        action, log_prob, act_dist = agent.get_action(obs)
+        if agent.name and agent.name == 'PPO':
+            action, log_prob, act_dist = agent.get_action(obs)
+        else: # PG  
+            action, log_prob = agent.get_action(obs)
+
         obs_old = obs.copy()
         obs, reward, done, _ = env.step(to_numpy(action))
         if type(log_prob) == tuple:
@@ -53,8 +55,8 @@ def train(agent, env):
         reward_sum += reward
         timesteps += 1
     
-    # Update the policy after one episode
-    info = agent.update()
+        # Update the policy after one episode
+        info = agent.update()
 
     # Return stats of training
     info.update({'timesteps': timesteps,
@@ -88,7 +90,7 @@ def test(agent, env, num_episodes=10):
     return np.mean(test_rewards), np.std(test_rewards)
 
 # The main function
-@hydra.main(config_path="configs", config_name="lunarlander_continuous_easy") # bipedalwalker_easy lunarlander_continuous_medium
+@hydra.main(config_path="configs", config_name="bipedalwalker_easy") # bipedalwalker_easy lunarlander_continuous_medium
 def main(cfg):
 
     # Set seed for reproducibility

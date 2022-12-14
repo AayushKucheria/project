@@ -10,7 +10,7 @@ seed: 1
 exp_name: LunarLander-v2_contin_medium
 run_id: ??? # decided during execution
 
-agent_type: "PG"
+agent_type: "PPO"
 
 # PG
 pg:
@@ -36,13 +36,19 @@ ddpg:
   actor_layers: [512,256,64]
   critic_layers: [512,256,64]
 
+ppo:
+  lr: 1e-3
+  batch_size: 64
+  gamma: 0.98
+  train_episodes: 1300
+
 testing: false
 model_path: default
 
 save_video: true
 save_logging: true
 save_model: true
-use_wandb: false
+use_wandb: true
 silent: false
 
 run_suffix: 0

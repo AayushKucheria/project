@@ -28,26 +28,7 @@ class Critic(torch.nn.Module):
         "Returns the value of a given state"
         return self.value_network(state)
 
-
-class Critic(torch.nn.Module):
-
-    def __init__(self, state_dim):
-        "Initialises the critic network"
-        super(Critic, self).__init__()
-        self.value_network = torch.nn.Sequential(
-            layer_init(torch.nn.Linear(state_dim, 64)),
-            torch.nn.Tanh(),
-            layer_init(torch.nn.Linear(64, 64)),
-            torch.nn.Tanh(),
-            layer_init(torch.nn.Linear(64, 1), std=1.0),
-        )
-        
-    def forward(self, state):
-        "Returns the value of a given state"
-        return self.value_network(state)
-
 class Policy(torch.nn.Module):
-
 
     def __init__(self, state_dim, action_dim):
         "Initialises the policy network"
@@ -80,6 +61,8 @@ class PPO(object):
 
     def __init__(self, state_dim, action_dim, lr, gamma, clip=0.2):
 
+        self.name = "PPO"
+
         self.policy = Policy(state_dim, action_dim).to(device)
         self.critic = Critic(state_dim).to(device)
 
@@ -105,6 +88,9 @@ class PPO(object):
 
         # Return mean if evaluation, else sample from the distribution
         
+        # TODO: Can update policy for n_epochs here. 
+        # CHeck: https://colab.research.google.com/github/nikhilbarhate99/PPO-PyTorch/blob/master/PPO_colab.ipynb
+
         actions = self.dist.sample() 
         # log probability of all actions in the distribution
         act_logprobs = self.dist.log_prob(actions).sum() #   [Action_dim,] 
@@ -114,12 +100,12 @@ class PPO(object):
         discounted_rewards = h.discount_rewards(rewards, self.gamma)
         
         advantage = discounted_rewards - self.baseline # Baseline is a scalar
-        self.baseline = discounted_rewards.mean()
-        # I can probably update the baseline here, but I'm not sure how. What I earlier did was to baseline = discounted_rewards
+        # Convert mean of discounted_rewards to float and store in baseline
+        self.baseline = discounted_rewards.double().mean()
 
         # Surrogate loss
         old_log_probs = torch.stack(self.log_probs, dim=0).to(device)
-        ratio = torch.exp(act_logprobs - old_log_probs)
+        ratio = torch.exp(act_logprobs - old_log_probs.detach())
 
         surrogate_loss = ratio * advantage
 
@@ -173,11 +159,6 @@ class PPO(object):
         # Convert state to tensor
         state = torch.tensor(state, dtype=torch.float).to(device)
 
-        # Pass state x through the policy network (T1)
-        self.policy.eval()
-        act_dist = self.policy.forward(state)
-        self.policy.train()
-        # Return mean if evaluation, else sample from the distribution
         # Pass state x through the policy network (T1)
         self.policy.eval()
         act_dist = self.policy.forward(state)
