@@ -1,0 +1,59 @@
+env_name: 'LunarLander-v2'
+env_parameters:
+  continuous: true
+  gravity: -9.81
+  enable_wind: true
+  wind_power: 15
+  turbulence_power: 1.5
+
+seed: 1
+exp_name: LunarLander-v2_contin_medium
+run_id: ??? # decided during execution
+
+agent_type: "PPO"
+
+# PG
+pg:
+  train_episodes: 3500
+  gamma: 0.98
+  lr: 3e-4
+  layers: [512, 256, 64]
+
+# DDPG
+ddpg:
+  train_episodes: 2000
+  gamma: 0.98
+  actor_lr: 1e-3
+  critic_lr: 1e-3
+  tau: 1e-3
+  batch_size: 64
+  buffer_size: 200000
+  normalize: false
+  use_ou: false
+  weight_decay: 0
+  noise_std: 0.1
+  uniform: false
+  actor_layers: [512,256,64]
+  critic_layers: [512,256,64]
+
+ppo:
+  lr: 1e-3
+  batch_size: 64
+  gamma: 0.98
+  train_episodes: 1300
+
+testing: false
+model_path: default
+
+save_video: true
+save_logging: true
+save_model: true
+use_wandb: true
+silent: false
+
+run_suffix: 0
+# ref: https://stackoverflow.com/questions/65104134/disable-file-output-of-hydra
+hydra:  
+    output_subdir: null  
+    run:  
+        dir: .
